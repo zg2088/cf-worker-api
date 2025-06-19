@@ -26,7 +26,7 @@ async function getToken() {
     siteSelect.addEventListener('change', function () {
         const selectedValue = this.value.split("_")[0]; // 获取选中的value
         // 更新输入框的值
-        callbackUrlInput.value = `https://api.oplist.org/${selectedValue}/callback`;
+        callbackUrlInput.value = `https://api.sismvp.com/${selectedValue}/callback`;
         document.getElementById('secret-key-view').hidden = true;
 
         const clientIdInput = document.getElementById('client-id');
