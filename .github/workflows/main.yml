@@ -1,24 +1,52 @@
 name: Sync Upstream
+
 on:
   schedule:
     # 每天 UTC 时间 0 点同步（北京时间 8:00）
     - cron: '0 0 * * *'
   workflow_dispatch: # 允许手动触发
+
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 必须的写入权限
+    
     steps:
-      - name: Checkout your fork
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main  # 你的分支名（如 main/master）
+          ref: main  # 使用 main 分支（如果是 master 请修改）
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync upstream changes
         uses: actions/github-script@v6
         with:
           script: |
-            await github.request('POST /repos/{owner}/{repo}/merge-upstream', {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              branch: 'main'  # 要同步的分支
-            })
+            try {
+              // 使用 REST API 同步上游更新
+              const response = await github.rest.repos.mergeUpstream({
+                owner: 'zg2088',
+                repo: 'cf-worker-api',
+                branch: 'main'  // 要同步的分支名
+              });
+              
+              console.log('同步成功! 响应数据:', response.data);
+              
+              // 检查是否有实际更新
+              if (response.data.merge_type === 'none') {
+                console.log('🟢 已是最新版本，无需更新');
+              } else {
+                console.log(`🟢 成功合并 ${response.data.merge_commit_sha} 提交`);
+              }
+              
+            } catch (error) {
+              // 错误处理
+              console.error('❌ 同步失败:', error);
+              core.setFailed(`同步错误: ${error.message}`);
+              
+              // 特殊处理合并冲突
+              if (error.status === 409) {
+                console.log('⚠️ 检测到合并冲突，需要手动解决');
+              }
+            }
